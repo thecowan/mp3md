@@ -2,6 +2,14 @@ from tagger import *
 
 import sys, os, fnmatch
 
+class Doctor(object):
+  def __init__(self, tests):
+    self.checker = DirectoryCheck(tests)
+
+  def check_dir(self, directory):
+    for dirpath, _, _ in os.walk(directory):
+      self.checker.check_dir(dirpath)
+
 class DirectoryCheck(object):
   def __init__(self, tests):
     self.tests = tests
@@ -112,7 +120,7 @@ def runchecks(path):
     FrameAbsentCheck('XXXX'),
     FrameBlacklistCheck('TPE2', ['David Bowie']),
   ]
-  tester = DirectoryCheck(tests)
-  tester.check_dir(path)
+  doctor = Doctor(tests)
+  doctor.check_dir(path)
 
 runchecks(sys.argv[1])
