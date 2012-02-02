@@ -43,7 +43,7 @@ class FileCheck(Check):
   def check_file(self, file, id3):
     pass
 
-class TagPresentCheck(FileCheck):
+class FramePresentCheck(FileCheck):
   def __init__(self, frametype):
     self.frametype = frametype
 
@@ -52,7 +52,7 @@ class TagPresentCheck(FileCheck):
     if not frame:
       print(file, "Required frame %s missing" % self.frametype)
 
-class TagAbsentCheck(FileCheck):
+class FrameAbsentCheck(FileCheck):
   def __init__(self, frametype):
     self.frametype = frametype
 
@@ -62,7 +62,7 @@ class TagAbsentCheck(FileCheck):
       print(file, "Banned frame %s present" % self.frametype)
 
 
-class TagWhitelistCheck(FileCheck):
+class FrameWhitelistCheck(FileCheck):
   def __init__(self, frametype, whitelist):
     self.frametype = frametype
     self.whitelist = set(whitelist)
@@ -76,7 +76,7 @@ class TagWhitelistCheck(FileCheck):
       print(file, "Frame %s has values not in whitelist %s" % (self.frametype, invalid))
 
 
-class TagBlacklistCheck(FileCheck):
+class FrameBlacklistCheck(FileCheck):
   def __init__(self, frametype, blacklist):
     self.frametype = frametype
     self.blacklist = set(blacklist)
@@ -90,7 +90,7 @@ class TagBlacklistCheck(FileCheck):
       print(file, "Frame %s has values in blacklist %s" % (self.frametype, invalid))
 
 
-class TagConsistencyCheck(Check):
+class FrameConsistencyCheck(Check):
   def __init__(self, frametype):
     self.frametype = frametype
 
@@ -105,12 +105,12 @@ class TagConsistencyCheck(Check):
 
 
 def runchecks(path):
-  tests = [TagPresentCheck('APIC'), TagPresentCheck('TALB'), TagPresentCheck('TOWN'), TagConsistencyCheck('TALB'), TagConsistencyCheck('TPE2'),
-    TagWhitelistCheck('TCON', ['Rock']),
-    TagWhitelistCheck('TOWN', ['emusic']),
-    TagPresentCheck('TDOR'),
-    TagAbsentCheck('XXXX'),
-    TagBlacklistCheck('TPE2', ['David Bowie']),
+  tests = [FramePresentCheck('APIC'), FramePresentCheck('TALB'), FramePresentCheck('TOWN'), FrameConsistencyCheck('TALB'), FrameConsistencyCheck('TPE2'),
+    FrameWhitelistCheck('TCON', ['Rock']),
+    FrameWhitelistCheck('TOWN', ['emusic']),
+    FramePresentCheck('TDOR'),
+    FrameAbsentCheck('XXXX'),
+    FrameBlacklistCheck('TPE2', ['David Bowie']),
   ]
   tester = DirectoryCheck(tests)
   tester.check_dir(path)
