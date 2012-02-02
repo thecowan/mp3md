@@ -76,6 +76,20 @@ class TagWhitelistCheck(FileCheck):
       print(file, "Frame %s has values not in whitelist %s" % (self.frametype, invalid))
 
 
+class TagBlacklistCheck(FileCheck):
+  def __init__(self, frametype, blacklist):
+    self.frametype = frametype
+    self.blacklist = set(blacklist)
+
+  def check_file(self, file, id3):
+    frame = self.get_frame(id3, self.frametype) 
+    if not frame:
+	   return
+    invalid = [string for string in frame.strings if string in self.blacklist]
+    if len(invalid) > 0:
+      print(file, "Frame %s has values in blacklist %s" % (self.frametype, invalid))
+
+
 class TagConsistencyCheck(Check):
   def __init__(self, frametype):
     self.frametype = frametype
@@ -96,6 +110,7 @@ def runchecks(path):
     TagWhitelistCheck('TOWN', ['emusic']),
     TagPresentCheck('TDOR'),
     TagAbsentCheck('XXXX'),
+    TagBlacklistCheck('TPE2', ['David Bowie']),
   ]
   tester = DirectoryCheck(tests)
   tester.check_dir(path)
