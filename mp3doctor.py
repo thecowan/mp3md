@@ -52,6 +52,16 @@ class TagPresentCheck(FileCheck):
     if not frame:
       print(file, "Required frame %s missing" % self.frametype)
 
+class TagAbsentCheck(FileCheck):
+  def __init__(self, frametype):
+    self.frametype = frametype
+
+  def check_file(self, file, id3):
+    frame = self.get_frame(id3, self.frametype) 
+    if frame:
+      print(file, "Banned frame %s present" % self.frametype)
+
+
 class TagWhitelistCheck(FileCheck):
   def __init__(self, frametype, whitelist):
     self.frametype = frametype
@@ -59,6 +69,8 @@ class TagWhitelistCheck(FileCheck):
 
   def check_file(self, file, id3):
     frame = self.get_frame(id3, self.frametype) 
+    if not frame:
+	   return
     invalid = [string for string in frame.strings if string not in self.whitelist]
     if len(invalid) > 0:
       print(file, "Frame %s has values not in whitelist %s" % (self.frametype, invalid))
@@ -80,7 +92,11 @@ class TagConsistencyCheck(Check):
 
 def runchecks(path):
   tests = [TagPresentCheck('APIC'), TagPresentCheck('TALB'), TagPresentCheck('TOWN'), TagConsistencyCheck('TALB'), TagConsistencyCheck('TPE2'),
-    TagWhitelistCheck('TCON', ['Rock'])]
+    TagWhitelistCheck('TCON', ['Rock']),
+    TagWhitelistCheck('TOWN', ['emusic']),
+    TagPresentCheck('TDOR'),
+    TagAbsentCheck('XXXX'),
+  ]
   tester = DirectoryCheck(tests)
   tester.check_dir(path)
 
