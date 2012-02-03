@@ -103,6 +103,8 @@ class FrameBlacklistCheck(FileCheck):
       return
     if (self.regex):
       invalid = [[string for regex in self.blacklist if re.match(regex, string)] for string in frame.strings]
+      if invalid:
+        invalid = invalid[0]
     else:
       invalid = [string for string in frame.strings if string in self.blacklist]
     if len(invalid) > 0:
@@ -131,6 +133,9 @@ def runchecks(path):
     FrameAbsentCheck('XXXX'),
     FrameBlacklistCheck('TPE2', ['David Bowie']),
     FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
+    FrameBlacklistCheck('TPE2', [r'\(.*with'], regex=True),
+    FrameBlacklistCheck('TPE2', [r'\(.*live'], regex=True),
+    FrameBlacklistCheck('TPE2', [r'\(.*remix'], regex=True),
   ]
   doctor = Doctor(tests)
   doctor.check_dir(path)
