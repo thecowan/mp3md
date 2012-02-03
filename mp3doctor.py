@@ -142,9 +142,9 @@ def runchecks(path):
     FrameAbsentCheck('XXXX'),
     FrameBlacklistCheck('TPE2', ['David Bowie']),
     FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
-    FrameBlacklistCheck('TPE2', [r'\(.*with'], regex=True),
-    FrameBlacklistCheck('TPE2', [r'\(.*live'], regex=True),
-    FrameBlacklistCheck('TPE2', [r'\(.*remix'], regex=True),
+    FrameBlacklistCheck('TPE2', [r'[\(\[].*with'], regex=True),
+    FrameBlacklistCheck('TPE2', [r'[\(\[].*live'], regex=True),
+    FrameBlacklistCheck('TPE2', [r'[\(\[].*remix'], regex=True),
   ]
   doctor = Doctor(tests)
   doctor.checkup(path, recursive=True)
