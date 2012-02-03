@@ -1,6 +1,6 @@
 from tagger import *
 
-import sys, os, fnmatch
+import sys, os, fnmatch, re
 
 class Doctor(object):
   def __init__(self, tests):
@@ -71,31 +71,42 @@ class FrameAbsentCheck(FileCheck):
 
 
 class FrameWhitelistCheck(FileCheck):
-  def __init__(self, frametype, whitelist):
+  def __init__(self, frametype, whitelist, regex=False):
     self.frametype = frametype
     self.whitelist = set(whitelist)
+    self.regex = regex
 
   def check_file(self, file, id3):
     frame = self.get_frame(id3, self.frametype) 
     if not frame:
-	   return
-    invalid = [string for string in frame.strings if string not in self.whitelist]
+      return
+    if self.regex:
+      valid = [[string for regex in self.whitelist if re.match(regex, string)] for string in frame.strings]
+      if valid:
+        valid = valid[0]
+      invalid = [string for string in frame.strings if string not in valid]
+    else:
+      invalid = [string for string in frame.strings if string not in self.whitelist]
     if len(invalid) > 0:
       print(file, "Frame %s has values not in whitelist %s" % (self.frametype, invalid))
 
 
 class FrameBlacklistCheck(FileCheck):
-  def __init__(self, frametype, blacklist):
+  def __init__(self, frametype, blacklist, regex=False):
     self.frametype = frametype
     self.blacklist = set(blacklist)
+    self.regex = regex
 
   def check_file(self, file, id3):
     frame = self.get_frame(id3, self.frametype) 
     if not frame:
-	   return
-    invalid = [string for string in frame.strings if string in self.blacklist]
+      return
+    if (self.regex):
+      invalid = [[string for regex in self.blacklist if re.match(regex, string)] for string in frame.strings]
+    else:
+      invalid = [string for string in frame.strings if string in self.blacklist]
     if len(invalid) > 0:
-      print(file, "Frame %s has values in blacklist %s" % (self.frametype, invalid))
+      print(file, "Frame %s has values %s matching blacklist %s" % (self.frametype, invalid, self.blacklist))
 
 
 class FrameConsistencyCheck(Check):
@@ -119,6 +130,7 @@ def runchecks(path):
     FramePresentCheck('TDOR'),
     FrameAbsentCheck('XXXX'),
     FrameBlacklistCheck('TPE2', ['David Bowie']),
+    FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
   ]
   doctor = Doctor(tests)
   doctor.check_dir(path)
