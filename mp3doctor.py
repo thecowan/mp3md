@@ -4,31 +4,40 @@ import sys, os, fnmatch, re
 
 class Doctor(object):
   def __init__(self, tests):
-    self.checker = DirectoryCheck(tests)
+    self.test_runner = TestRunner(tests)
 
-  def check_dir(self, directory):
-    for dirpath, _, _ in os.walk(directory):
-      self.checker.check_dir(dirpath)
+  def checkup(self, directory, recursive=False):
+    if recursive:
+      for dirpath, _, _ in os.walk(directory):
+        self.test_runner.test_dir(dirpath)
+    else:
+      self.test_runner.test_dir(dirpath)
 
-class DirectoryCheck(object):
+class TestRunner(object):
   def __init__(self, tests):
     self.tests = tests
 
-  def check_dir(self, directory):
+  def test_dir(self, directory):
     tocheck = []
     files = fnmatch.filter(os.listdir(directory), '*.mp3')
+    errors = dict()
     for file in files:
       path = os.path.join(directory, file)
       id3 = ID3v2(path)
       if not id3.tag_exists():
-        print(path, "Unable to find ID3v2 tag")
+        errors.setdefault(path, []).append("Unable to find ID3v2 tag")
       else:
         tocheck.append((path, id3))
     for test in self.tests:
-      test.run_check(directory, tocheck)
+      test.run_check(directory, tocheck, errors)
+    if len(errors) > 0:
+      for file, errormessages in errors.items():
+        print "%s:" % (file)
+        for message in errormessages:
+          print "  %s" % (message)
 
 class Check(object):
-  def run_check(self, directory, files):
+  def run_check(self, directory, files, errors):
     pass
 
   def get_frame(self, id3, frametype):
@@ -44,30 +53,30 @@ class Check(object):
     return None
 
 class FileCheck(Check):
-  def run_check(self, directory, files):
+  def run_check(self, directory, files, errors):
     for file, frames in files:
-      self.check_file(file, frames)
+      self.check_file(file, frames, errors)
 
-  def check_file(self, file, id3):
+  def check_file(self, file, id3, errors):
     pass
 
 class FramePresentCheck(FileCheck):
   def __init__(self, frametype):
     self.frametype = frametype
 
-  def check_file(self, file, id3):
+  def check_file(self, file, id3, errors):
     frame = self.get_frame(id3, self.frametype) 
     if not frame:
-      print(file, "Required frame %s missing" % self.frametype)
+      errors.setdefault(file, []).append("Required frame %s missing" % self.frametype)
 
 class FrameAbsentCheck(FileCheck):
   def __init__(self, frametype):
     self.frametype = frametype
 
-  def check_file(self, file, id3):
+  def check_file(self, file, id3, errors):
     frame = self.get_frame(id3, self.frametype) 
     if frame:
-      print(file, "Banned frame %s present" % self.frametype)
+      errors.setdefault(file, []).append("Banned frame %s present" % self.frametype)
 
 
 class FrameWhitelistCheck(FileCheck):
@@ -76,7 +85,7 @@ class FrameWhitelistCheck(FileCheck):
     self.whitelist = set(whitelist)
     self.regex = regex
 
-  def check_file(self, file, id3):
+  def check_file(self, file, id3, errors):
     frame = self.get_frame(id3, self.frametype) 
     if not frame:
       return
@@ -88,7 +97,7 @@ class FrameWhitelistCheck(FileCheck):
     else:
       invalid = [string for string in frame.strings if string not in self.whitelist]
     if len(invalid) > 0:
-      print(file, "Frame %s has values not in whitelist %s" % (self.frametype, invalid))
+      errors.setdefault(file, []).append("Frame %s has values not in whitelist %s" % (self.frametype, invalid))
 
 
 class FrameBlacklistCheck(FileCheck):
@@ -97,7 +106,7 @@ class FrameBlacklistCheck(FileCheck):
     self.blacklist = set(blacklist)
     self.regex = regex
 
-  def check_file(self, file, id3):
+  def check_file(self, file, id3, errors):
     frame = self.get_frame(id3, self.frametype) 
     if not frame:
       return
@@ -108,21 +117,21 @@ class FrameBlacklistCheck(FileCheck):
     else:
       invalid = [string for string in frame.strings if string in self.blacklist]
     if len(invalid) > 0:
-      print(file, "Frame %s has values %s matching blacklist %s" % (self.frametype, invalid, self.blacklist))
+      errors.setdefault(file, []).append("Frame %s has values %s matching blacklist %s" % (self.frametype, invalid, self.blacklist))
 
 
 class FrameConsistencyCheck(Check):
   def __init__(self, frametype):
     self.frametype = frametype
 
-  def run_check(self, directory, files):
+  def run_check(self, directory, files, errors):
     values = set()
     for file, frame in files:
       value = self.get_value(frame, self.frametype)
       values.add(value)
    
     if len(values) > 1:
-      print (directory, "Inconsistent values for frame %s: %s" % (self.frametype, values))
+      errors.setdefault(directory, []).append("Inconsistent values for frame %s: %s" % (self.frametype, values))
 
 
 def runchecks(path):
@@ -138,6 +147,6 @@ def runchecks(path):
     FrameBlacklistCheck('TPE2', [r'\(.*remix'], regex=True),
   ]
   doctor = Doctor(tests)
-  doctor.check_dir(path)
+  doctor.checkup(path, recursive=True)
 
 runchecks(sys.argv[1])
