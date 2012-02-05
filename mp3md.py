@@ -180,4 +180,5 @@ def runchecks(path):
   doctor = Doctor(tests)
   doctor.checkup(path, recursive=True)
 
-runchecks(sys.argv[1])
+if __name__ == "__main__":
+  runchecks(sys.argv[1])
