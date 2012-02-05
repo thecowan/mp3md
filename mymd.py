@@ -1,4 +1,4 @@
-from mp3doctor import *
+from mp3md import *
 
 Doctor([
   # 'real' tests
