@@ -3,7 +3,7 @@
 #  - command-line flags (recursive)
 #  - supply checks by file, command line, etc
 #  - check track number: none missing, all unique
-from tagger import *
+from mutagen.id3 import *
 
 import sys, os, fnmatch, re
 
@@ -28,11 +28,11 @@ class TestRunner(object):
     errors = dict()
     for file in files:
       path = os.path.join(directory, file)
-      id3 = ID3v2(path)
-      if not id3.tag_exists():
-        errors.setdefault(path, []).append("Unable to find ID3v2 tag")
-      else:
+      try:
+        id3 = ID3(path)
         tocheck.append((path, id3))
+      except:
+        errors.setdefault(path, []).append("Unable to find ID3v2 tag")
     for test in self.tests:
       test.run_check(directory, tocheck, errors)
     if len(errors) > 0:
@@ -47,14 +47,14 @@ class Check(object):
 
   def get_frame(self, id3, frametype):
     try:
-      return [frame for frame in id3.frames if frame.fid == frametype][0]
+      return id3.getall(frametype)[0]
     except IndexError:
       return None
 
   def get_value(self, id3, frametype): 
     frame = self.get_frame(id3, frametype)
     if frame:
-      return str(frame.strings)
+      return str(frame.text)
     return None
 
 class FileCheck(Check):
@@ -97,12 +97,12 @@ class FrameWhitelistCheck(FileCheck):
     if not frame:
       return
     if self.regex:
-      valid = [[string for regex in self.whitelist if re.match(regex, string)] for string in frame.strings]
+      valid = [[string for regex in self.whitelist if re.match(regex, string)] for string in frame.text]
       if valid:
         valid = valid[0]
-      invalid = [string for string in frame.strings if string not in valid]
+      invalid = [string for string in frame.text if string not in valid]
     else:
-      invalid = [string for string in frame.strings if string not in self.whitelist]
+      invalid = [string for string in frame.text if string not in self.whitelist]
     if len(invalid) > 0:
       errors.setdefault(file, []).append("Frame %s has values not in whitelist %s" % (self.frametype, invalid))
 
@@ -118,11 +118,11 @@ class FrameBlacklistCheck(FileCheck):
     if not frame:
       return
     if (self.regex):
-      invalid = [[string for regex in self.blacklist if re.match(regex, string)] for string in frame.strings]
+      invalid = [[string for regex in self.blacklist if re.match(regex, string)] for string in frame.text]
       if invalid:
         invalid = invalid[0]
     else:
-      invalid = [string for string in frame.strings if string in self.blacklist]
+      invalid = [string for string in frame.text if string in self.blacklist]
     if len(invalid) > 0:
       errors.setdefault(file, []).append("Frame %s has values %s matching blacklist %s" % (self.frametype, invalid, self.blacklist))
 
