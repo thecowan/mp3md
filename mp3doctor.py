@@ -1,3 +1,8 @@
+# TODO:
+#  - group reports by error-per-dir, or error-global
+#  - command-line flags (recursive)
+#  - supply checks by file, command line, etc
+#  - check track number: none missing, all unique
 from tagger import *
 
 import sys, os, fnmatch, re
@@ -61,22 +66,24 @@ class FileCheck(Check):
     pass
 
 class FramePresentCheck(FileCheck):
-  def __init__(self, frametype):
-    self.frametype = frametype
+  def __init__(self, frametypes):
+    self.frametypes = frametypes
 
   def check_file(self, file, id3, errors):
-    frame = self.get_frame(id3, self.frametype) 
-    if not frame:
-      errors.setdefault(file, []).append("Required frame %s missing" % self.frametype)
+    for frametype in self.frametypes:
+      frame = self.get_frame(id3, frametype) 
+      if not frame:
+        errors.setdefault(file, []).append("Required frame %s missing" % frametype)
 
 class FrameAbsentCheck(FileCheck):
-  def __init__(self, frametype):
-    self.frametype = frametype
+  def __init__(self, frametypes):
+    self.frametypes = frametypes
 
   def check_file(self, file, id3, errors):
-    frame = self.get_frame(id3, self.frametype) 
-    if frame:
-      errors.setdefault(file, []).append("Banned frame %s present" % self.frametype)
+    for frametype in self.frametypes:
+      frame = self.get_frame(id3, frametype) 
+      if frame:
+        errors.setdefault(file, []).append("Banned frame %s present" % frametype)
 
 
 class FrameWhitelistCheck(FileCheck):
@@ -121,30 +128,54 @@ class FrameBlacklistCheck(FileCheck):
 
 
 class FrameConsistencyCheck(Check):
-  def __init__(self, frametype):
-    self.frametype = frametype
+  def __init__(self, frametypes):
+    self.frametypes = frametypes
 
   def run_check(self, directory, files, errors):
-    values = set()
-    for file, frame in files:
-      value = self.get_value(frame, self.frametype)
-      values.add(value)
+    for frametype in self.frametypes:
+      values = set()
+      for file, frame in files:
+        value = self.get_value(frame, frametype)
+        values.add(value)
    
-    if len(values) > 1:
-      errors.setdefault(directory, []).append("Inconsistent values for frame %s: %s" % (self.frametype, values))
+      if len(values) > 1:
+        errors.setdefault(directory, []).append("Inconsistent values for frame %s: %s" % (frametype, values))
+
+
+class MutualPresenceCheck(FileCheck):
+  def __init__(self, frametypes):
+    self.frametypes = frametypes
+
+  def check_file(self, file, id3, errors):
+    present = [frametype for frametype in self.frametypes if self.get_frame(id3, frametype)]
+    absent = [frametype for frametype in self.frametypes if frametype not in present]
+    if len(present) == 0:
+      return
+    if len(absent) == 0:
+      return
+    errors.setdefault(file, []).append("Mutally required frames missing: has %s but not %s" % (present, absent))
 
 
 def runchecks(path):
-  tests = [FramePresentCheck('APIC'), FramePresentCheck('TALB'), FramePresentCheck('TOWN'), FrameConsistencyCheck('TALB'), FrameConsistencyCheck('TPE2'),
-    FrameWhitelistCheck('TCON', ['Rock']),
+  tests = [
+    # 'real' tests
+    # TDRL vs TDRC vs TYER
+    # RVA2 vs RVAD
+    # Blacklist 'Various' from TPE1?
+    # 'and' / '&' / 'feat' in artists
+    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
+    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
+    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
     FrameWhitelistCheck('TOWN', ['emusic']),
-    FramePresentCheck('TDOR'),
-    FrameAbsentCheck('XXXX'),
+    FrameWhitelistCheck('TCON', ['Rock']),
+    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
+    FrameWhitelistCheck('TPE3', ['xxx']), # conductor
+    FrameWhitelistCheck('TCOM', ['xxx']), # composer
+    
+    # 'demo' tests
+    FrameAbsentCheck(['XXXX','YYYY']),
     FrameBlacklistCheck('TPE2', ['David Bowie']),
     FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
-    FrameBlacklistCheck('TPE2', [r'[\(\[].*with'], regex=True),
-    FrameBlacklistCheck('TPE2', [r'[\(\[].*live'], regex=True),
-    FrameBlacklistCheck('TPE2', [r'[\(\[].*remix'], regex=True),
   ]
   doctor = Doctor(tests)
   doctor.checkup(path, recursive=True)
