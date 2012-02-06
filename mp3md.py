@@ -18,6 +18,40 @@ class Doctor(object):
     else:
       self.test_runner.test_dir(dirpath)
 
+class Message(object):
+  def __init__(self, severity, text):
+    self.severity = severity
+    self.text = text
+
+  def __str__(self):
+    return "%s: %s" % (self.severity, self.text)
+    
+class Errors(object):
+  def __init__(self):
+    self.errors = dict()
+  
+  def record(self, path, error):
+    self.errors.setdefault(path, []).append(Message("ERROR", error))
+
+  def has_errors(self):
+    return len(self.errors) > 0
+
+  def error_files(self):
+    return self.errors.keys()
+
+  def items(self):
+    return self.errors.items()
+
+  def merge(self, other):
+    for (path, errors) in other.items():
+      for error in errors:
+        self.errors.setdefault(path, []).append(error)
+
+  def demote_all(self, severity):
+    for (_, errors) in self.errors.items():
+      for error in errors:
+        error.severity = severity
+          
 class TestRunner(object):
   def __init__(self, tests):
     self.tests = tests
@@ -25,37 +59,54 @@ class TestRunner(object):
   def test_dir(self, directory):
     tocheck = []
     files = fnmatch.filter(os.listdir(directory), '*.mp3')
-    errors = dict()
+    errors = Errors()
     for file in files:
       path = os.path.join(directory, file)
       try:
         id3 = ID3(path)
         tocheck.append((path, id3))
       except:
-        errors.setdefault(path, []).append("Unable to find ID3v2 tag")
+        errors.record(path, "Unable to find ID3v2 tag")
     for test in self.tests:
-      test.run_check(directory, tocheck, errors)
-    if len(errors) > 0:
+      local_errors = Errors()
+      test.run_check(directory, tocheck, local_errors)
+      if test.fix and local_errors.has_errors():
+        local_errors.demote_all("POTENTIAL")
+        errors.merge(local_errors)
+        tofix = [(path, id3) for (path, id3) in tocheck if path in local_errors.error_files()]
+        fixerrors = Errors()
+        test.fix.try_fix(directory, tofix, fixerrors)
+        fixerrors.demote_all("TRYING")
+        errors.merge(fixerrors)
+        posterrors = Errors()
+        test.run_check(directory, tocheck, posterrors)
+        errors.merge(posterrors)
+
+      else:
+        errors.merge(local_errors)
+    if errors.has_errors():
       for file, errormessages in errors.items():
         print "%s:" % (file)
         for message in errormessages:
-          print "  %s" % (message)
+          print " %s" % (message)
 
 class Check(object):
   def run_check(self, directory, files, errors):
     pass
 
-  def get_frame(self, id3, frametype):
+  def get_frame(id3, frametype):
     try:
       return id3.getall(frametype)[0]
     except IndexError:
       return None
-
-  def get_value(self, id3, frametype): 
-    frame = self.get_frame(id3, frametype)
+  get_frame = staticmethod(get_frame)
+  
+  def get_value(id3, frametype): 
+    frame = Check.get_frame(id3, frametype)
     if frame:
       return str(frame.text)
     return None
+  get_value = staticmethod(get_value)
 
 class FileCheck(Check):
   def run_check(self, directory, files, errors):
@@ -71,19 +122,20 @@ class FramePresentCheck(FileCheck):
 
   def check_file(self, file, id3, errors):
     for frametype in self.frametypes:
-      frame = self.get_frame(id3, frametype) 
+      frame = Check.get_frame(id3, frametype) 
       if not frame:
-        errors.setdefault(file, []).append("Required frame %s missing" % frametype)
+        errors.record(file, "Required frame %s missing" % frametype)
 
 class FrameAbsentCheck(FileCheck):
-  def __init__(self, frametypes):
+  def __init__(self, frametypes, fix):
     self.frametypes = frametypes
+    self.fix = fix
 
   def check_file(self, file, id3, errors):
     for frametype in self.frametypes:
-      frame = self.get_frame(id3, frametype) 
+      frame = Check.get_frame(id3, frametype) 
       if frame:
-        errors.setdefault(file, []).append("Banned frame %s present" % frametype)
+        errors.record(file, "Banned frame %s present" % frametype)
 
 
 class FrameWhitelistCheck(FileCheck):
@@ -93,7 +145,7 @@ class FrameWhitelistCheck(FileCheck):
     self.regex = regex
 
   def check_file(self, file, id3, errors):
-    frame = self.get_frame(id3, self.frametype) 
+    frame = Check.get_frame(id3, self.frametype) 
     if not frame:
       return
     if self.regex:
@@ -104,7 +156,7 @@ class FrameWhitelistCheck(FileCheck):
     else:
       invalid = [string for string in frame.text if string not in self.whitelist]
     if len(invalid) > 0:
-      errors.setdefault(file, []).append("Frame %s has values not in whitelist %s" % (self.frametype, invalid))
+      errors.record(file, "Frame %s has values not in whitelist %s" % (self.frametype, invalid))
 
 
 class FrameBlacklistCheck(FileCheck):
@@ -114,7 +166,7 @@ class FrameBlacklistCheck(FileCheck):
     self.regex = regex
 
   def check_file(self, file, id3, errors):
-    frame = self.get_frame(id3, self.frametype) 
+    frame = Check.get_frame(id3, self.frametype) 
     if not frame:
       return
     if (self.regex):
@@ -124,7 +176,7 @@ class FrameBlacklistCheck(FileCheck):
     else:
       invalid = [string for string in frame.text if string in self.blacklist]
     if len(invalid) > 0:
-      errors.setdefault(file, []).append("Frame %s has values %s matching blacklist %s" % (self.frametype, invalid, self.blacklist))
+      errors.record(file, "Frame %s has values %s matching blacklist %s" % (self.frametype, invalid, self.blacklist))
 
 
 class FrameConsistencyCheck(Check):
@@ -135,11 +187,11 @@ class FrameConsistencyCheck(Check):
     for frametype in self.frametypes:
       values = set()
       for file, frame in files:
-        value = self.get_value(frame, frametype)
+        value = Check.get_value(frame, frametype)
         values.add(value)
    
       if len(values) > 1:
-        errors.setdefault(directory, []).append("Inconsistent values for frame %s: %s" % (frametype, values))
+        errors.record(directory, "Inconsistent values for frame %s: %s" % (frametype, values))
 
 
 class MutualPresenceCheck(FileCheck):
@@ -147,13 +199,29 @@ class MutualPresenceCheck(FileCheck):
     self.frametypes = frametypes
 
   def check_file(self, file, id3, errors):
-    present = [frametype for frametype in self.frametypes if self.get_frame(id3, frametype)]
+    present = [frametype for frametype in self.frametypes if Check.get_frame(id3, frametype)]
     absent = [frametype for frametype in self.frametypes if frametype not in present]
     if len(present) == 0:
       return
     if len(absent) == 0:
       return
-    errors.setdefault(file, []).append("Mutally required frames missing: has %s but not %s" % (present, absent))
+    errors.record(file, "Mutally required frames missing: has %s but not %s" % (present, absent))
+
+class StripFrame:
+  def __init__(self, frametypes):
+    self.frametypes = frametypes
+    
+  def try_fix(self, directory, files, errors):
+    for frametype in self.frametypes:
+      for file, frame in files:
+        try:
+          frame.delall(frametype)
+          frame.save()
+          errors.record(file, "Frame %s deleted" % (frametype,))
+        except:
+          errors.record(file, "Could not delete frame %s" % (frametype,))
+          
+   
 
 
 def runchecks(path):
@@ -163,19 +231,21 @@ def runchecks(path):
     # RVA2 vs RVAD
     # Blacklist 'Various' from TPE1?
     # 'and' / '&' / 'feat' in artists
-    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
-    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
-    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
-    FrameWhitelistCheck('TOWN', ['emusic']),
-    FrameWhitelistCheck('TCON', ['Rock']),
-    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
-    FrameWhitelistCheck('TPE3', ['xxx']), # conductor
-    FrameWhitelistCheck('TCOM', ['xxx']), # composer
+#    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
+#    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
+#    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
+#    FrameConsistencyCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=1)),
+     FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
+#    FrameWhitelistCheck('TOWN', ['emusic']),
+#    FrameWhitelistCheck('TCON', ['Rock']),
+#    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
+#    FrameWhitelistCheck('TPE3', ['xxx']), # conductor
+#    FrameWhitelistCheck('TCOM', ['xxx']), # composer
     
     # 'demo' tests
-    FrameAbsentCheck(['XXXX','YYYY']),
-    FrameBlacklistCheck('TPE2', ['David Bowie']),
-    FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
+#    FrameAbsentCheck(['XXXX','YYYY']),
+#    FrameBlacklistCheck('TPE2', ['David Bowie']),
+#    FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
   ]
   doctor = Doctor(tests)
   doctor.checkup(path, recursive=True)
