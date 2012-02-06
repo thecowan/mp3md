@@ -117,8 +117,9 @@ class FileCheck(Check):
     pass
 
 class FramePresentCheck(FileCheck):
-  def __init__(self, frametypes):
+  def __init__(self, frametypes, fix=None):
     self.frametypes = frametypes
+    self.fix = fix
 
   def check_file(self, file, id3, errors):
     for frametype in self.frametypes:
@@ -127,7 +128,7 @@ class FramePresentCheck(FileCheck):
         errors.record(file, "Required frame %s missing" % frametype)
 
 class FrameAbsentCheck(FileCheck):
-  def __init__(self, frametypes, fix):
+  def __init__(self, frametypes, fix=None):
     self.frametypes = frametypes
     self.fix = fix
 
@@ -139,10 +140,11 @@ class FrameAbsentCheck(FileCheck):
 
 
 class FrameWhitelistCheck(FileCheck):
-  def __init__(self, frametype, whitelist, regex=False):
+  def __init__(self, frametype, whitelist, regex=False, fix=None):
     self.frametype = frametype
     self.whitelist = set(whitelist)
     self.regex = regex
+    self.fix = fix
 
   def check_file(self, file, id3, errors):
     frame = Check.get_frame(id3, self.frametype) 
@@ -160,10 +162,11 @@ class FrameWhitelistCheck(FileCheck):
 
 
 class FrameBlacklistCheck(FileCheck):
-  def __init__(self, frametype, blacklist, regex=False):
+  def __init__(self, frametype, blacklist, regex=False, fix=None):
     self.frametype = frametype
     self.blacklist = set(blacklist)
     self.regex = regex
+    self.fix = fix
 
   def check_file(self, file, id3, errors):
     frame = Check.get_frame(id3, self.frametype) 
@@ -180,8 +183,9 @@ class FrameBlacklistCheck(FileCheck):
 
 
 class FrameConsistencyCheck(Check):
-  def __init__(self, frametypes):
+  def __init__(self, frametypes, fix):
     self.frametypes = frametypes
+    self.fix = fix
 
   def run_check(self, directory, files, errors):
     for frametype in self.frametypes:
@@ -195,8 +199,9 @@ class FrameConsistencyCheck(Check):
 
 
 class MutualPresenceCheck(FileCheck):
-  def __init__(self, frametypes):
+  def __init__(self, frametypes, fix=None):
     self.frametypes = frametypes
+    self.fix = none
 
   def check_file(self, file, id3, errors):
     present = [frametype for frametype in self.frametypes if Check.get_frame(id3, frametype)]
@@ -222,6 +227,17 @@ class StripFrame:
           errors.record(file, "Could not delete frame %s" % (frametype,))
           
    
+class ApplyCommonValue:
+  def __init__(self, source, target, outliers):
+    self.source = source
+    self.target = target
+    self.outliers = outliers    
+    
+  def try_fix(self, directory, files, errors):
+    errors.record(directory, "Can't fix! Sorry.")
+    for file, frame in files:
+      print file
+
 
 
 def runchecks(path):
@@ -234,8 +250,8 @@ def runchecks(path):
 #    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
 #    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
 #    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
-#    FrameConsistencyCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=1)),
-     FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
+    FrameConsistencyCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=1)),
+    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
 #    FrameWhitelistCheck('TOWN', ['emusic']),
 #    FrameWhitelistCheck('TCON', ['Rock']),
 #    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
