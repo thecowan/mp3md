@@ -74,7 +74,9 @@ class TestRunner(object):
       if test.fix and local_errors.has_errors():
         tofix = [(path, id3) for (path, id3) in valid_tags if path in local_errors.error_files()]
         test.fix.try_fix(directory, valid_tags, tofix, local_errors)
-        test.run_check(directory, valid_tags, "ERROR", local_errors)
+        
+        recheck_tags = [(file, ID3(file)) for (file, id3) in valid_tags]
+        test.run_check(directory, recheck_tags, "ERROR", local_errors)
       errors.merge(local_errors)
 
     if errors.has_errors():
@@ -208,7 +210,15 @@ class MutualPresenceCheck(FileCheck):
       return
     errors.record(file, severity, "Mutally required frames missing: has %s but not %s" % (present, absent))
 
+class TagVersionCheck(FileCheck):
+  def check_file(self, file, id3, severity, errors):
+    if (id3.version < (2, 4, 0)):
+      errors.record(file, severity, "Frame version too old: %s" % (id3.version,))
+      
+    
+    
 class Fix(object):
+  
   def try_fix(self, directory, valid_files, to_fix, errors):
     pass
   
@@ -265,8 +275,13 @@ class ApplyCommonValue(Fix):
           tag.save() 
           errors.record(file, "FIX", "Fixed: set field %s to \"%s\"" % (self.target, top_value))
         except object, e:
-          errors.record(file, "FIXERROR", "Could not save %s", e)
-          
+          errors.record(file, "FIXERROR", "Could not save %s" % e)
+
+class UpdateTag(Fix):
+  def try_fix(self, directory, valid_files, to_fix, errors):
+    for (file, tag) in to_fix:
+      tag.save()
+      errors.record(file, "FIX", "Updated tag to v2.4")
 
 
 
@@ -280,6 +295,7 @@ def runchecks(path):
 #    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
 #    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
 #    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
+    TagVersionCheck(fix=UpdateTag()),
     FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
 #    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
 #    FrameWhitelistCheck('TOWN', ['emusic']),
