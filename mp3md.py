@@ -2,7 +2,6 @@
 #  - group reports by error-per-dir, or error-global
 #  - command-line flags (recursive)
 #  - supply checks by file, command line, etc
-#  - check track number: none missing, all unique
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 
@@ -110,7 +109,8 @@ class Check(object):
   def get_value(id3, frametype): 
     frame = Check.get_frame(id3, frametype)
     if frame:
-      return str(frame.text)
+      # TODO: deal with multi-valued fields
+      return str(frame.text[0])
     return None
   get_value = staticmethod(get_value)
 
@@ -223,6 +223,29 @@ class TagVersionCheck(FileCheck):
     if (id3.version < (2, 4, 0)):
       errors.record(file, severity, "Frame version too old: %s" % (id3.version,))
       
+class TrackNumberContinuityCheck(Check):
+  def run_check(self, directory, files, severity, errors):
+    # TODO: make aware of disc numbers. Provide option not to care about single-track purchases.
+    track_values = set()
+    maxtrack_values = set()
+    for file, frame in files:
+      values = Check.get_value(frame, "TRCK").split("/")
+      track = int(values[0])
+      maxtrack = int(values[1]) if len(values) > 1 else None
+      track_values.add(track) 
+      maxtrack_values.add(maxtrack)
+    if len(maxtrack_values) > 1:
+      errors.record(directory, severity, "Tracks don't agree about album track length: %s" % (maxtrack_values,))
+      return
+    maxtrack = list(maxtrack_values)[0]
+    if not maxtrack:
+      maxtrack = len(files)
+    maxtrack = max(maxtrack, max(track_values))
+    sorted_tracks = sorted(track_values)
+    missing = [num for num in range(1, maxtrack) if not num in track_values]
+    if len(missing) > 0:
+      errors.record(directory, severity, "Missing track numbers %s out of %s tracks" % (missing, maxtrack))
+      
     
     
 class Fix(object):
@@ -304,8 +327,10 @@ def runchecks(path):
 #    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
 #    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
 #    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
+    FramePresentCheck(['TRCK']),
     TagVersionCheck(fix=UpdateTag()),
-    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
+#    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
+    TrackNumberContinuityCheck(),
 #    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
 #    FrameWhitelistCheck('TOWN', ['emusic']),
 #    FrameWhitelistCheck('TCON', ['Rock']),
