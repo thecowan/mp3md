@@ -3,6 +3,7 @@
 #  - command-line flags (recursive)
 #  - supply checks by file, command line, etc
 #  - check track number: none missing, all unique
+#  - update tags after each fix (so each test sees correct tags)
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 
