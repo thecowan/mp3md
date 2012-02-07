@@ -239,7 +239,7 @@ class StripFrame(Fix):
    
 class ApplyCommonValue(Fix):
   # outliers may be an integer (in which case it represents the number of files which are permitted
-  # to not have the common value, or a decimal < 1.0, in which case it is a fraction. So if there
+  # to not have the common value), or a decimal < 1.0, in which case it is a fraction. So if there
   # are 25 files in a directory, a value of 5 or a value of 0.2 will have the same effect (apply
   # a common value to target if 20/25 share the same value in source. If a decimal is supplied, a
   # minimum outlier of 1 is assumed. Ties in cardinality (so with 10 items, outliers = 5, and two
