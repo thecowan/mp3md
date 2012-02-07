@@ -3,7 +3,6 @@
 #  - command-line flags (recursive)
 #  - supply checks by file, command line, etc
 #  - check track number: none missing, all unique
-#  - update tags after each fix (so each test sees correct tags)
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 
@@ -59,16 +58,8 @@ class TestRunner(object):
     self.tests = tests
 
   def test_dir(self, directory):
-    valid_tags = []
-    files = fnmatch.filter(os.listdir(directory), '*.mp3')
     errors = Errors()
-    for file in files:
-      path = os.path.join(directory, file)
-      try:
-        id3 = ID3(path)
-        valid_tags.append((path, id3))
-      except:
-        errors.record(path, "ERROR", "Unable to find ID3v2 tag")
+    valid_tags = self.files_with_valid_tags(directory, errors=errors)
     for test in self.tests:
       local_errors = Errors()
       test.run_check(directory, valid_tags, "WARNING" if test.fix else "ERROR", local_errors)
@@ -76,8 +67,11 @@ class TestRunner(object):
         tofix = [(path, id3) for (path, id3) in valid_tags if path in local_errors.error_files()]
         test.fix.try_fix(directory, valid_tags, tofix, local_errors)
         
-        recheck_tags = [(file, ID3(file)) for (file, id3) in valid_tags]
-        test.run_check(directory, recheck_tags, "ERROR", local_errors)
+        # Update tags in case we're in an unknown state - fixes failed, etc. Some tests may no longer apply.
+        # Don't record ID3 errors though, we've already gotten those above (unless something's gone horribly
+        # horribly wrong).
+        valid_tags = self.files_with_valid_tags(directory, errors=None)
+        test.run_check(directory, valid_tags, "ERROR", local_errors)
       errors.merge(local_errors)
 
     if errors.has_errors():
@@ -86,6 +80,19 @@ class TestRunner(object):
         for message in errormessages:
           print " %s" % (message)
 
+  def files_with_valid_tags(self, directory, errors=None):
+    valid_tags = []
+    files = fnmatch.filter(os.listdir(directory), '*.mp3')
+    for file in files:
+      path = os.path.join(directory, file)
+      try:
+        id3 = ID3(path)
+        valid_tags.append((path, id3))
+      except:
+        if errors:
+          errors.record(path, "ERROR", "Unable to find ID3v2 tag")
+    return valid_tags  
+    
 class Check(object):
   def __init__(self, fix=None):
     self.fix = fix
