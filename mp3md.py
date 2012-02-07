@@ -70,7 +70,7 @@ class TestRunner(object):
         errors.record(path, "ERROR", "Unable to find ID3v2 tag")
     for test in self.tests:
       local_errors = Errors()
-      test.run_check(directory, valid_tags, "POTENTIAL" if test.fix else "ERROR", local_errors)
+      test.run_check(directory, valid_tags, "WARNING" if test.fix else "ERROR", local_errors)
       if test.fix and local_errors.has_errors():
         tofix = [(path, id3) for (path, id3) in valid_tags if path in local_errors.error_files()]
         test.fix.try_fix(directory, valid_tags, tofix, local_errors)
@@ -291,6 +291,7 @@ def runchecks(path):
     # TDRL vs TDRC vs TYER
     # RVA2 vs RVAD
     # Blacklist 'Various' from TPE1?
+    # TCMP if 'Various' set
     # 'and' / '&' / 'feat' in artists
 #    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
 #    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
