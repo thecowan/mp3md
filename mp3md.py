@@ -3,7 +3,8 @@
 #  - command-line flags (recursive)
 #  - supply checks by file, command line, etc
 #  - check track number: none missing, all unique
-from mutagen.id3 import *
+from mutagen.id3 import ID3
+from mutagen.id3 import Frames
 
 import sys, os, fnmatch, re
 
@@ -227,14 +228,45 @@ class StripFrame(Fix):
           
    
 class ApplyCommonValue(Fix):
+  # outliers may be an integer (in which case it represents the number of files which are permitted
+  # to not have the common value, or a decimal < 1.0, in which case it is a fraction. So if there
+  # are 25 files in a directory, a value of 5 or a value of 0.2 will have the same effect (apply
+  # a common value to target if 20/25 share the same value in source. If a decimal is supplied, a
+  # minimum outlier of 1 is assumed. Ties in cardinality (so with 10 items, outliers = 5, and two
+  # source values each used by 5 files) are broken arbitrarily.
   def __init__(self, source, target, outliers):
     self.source = source
     self.target = target
     self.outliers = outliers    
     
   def try_fix(self, directory, valid_files, to_fix, errors):
+    values = []
+    for (file, tag) in valid_files:
+      values.append(Check.get_value(tag, self.source))
+    if len(values) == 0:
+      for (file, tag) in to_fix:
+        errors.record(file, "FIXERROR", "No valid source values for tag %s" % self.source)
+      
+    counter = {}
+    for value in values: counter[value] = counter.get(value, 0) + 1    
+    top = sorted([ (freq,word) for word, freq in counter.items() ], reverse=True)[0]
+    top_value = top[1]
+    top_freq = top[0]
+    outliers = len(valid_files) - top_freq
+    permitted_outliers = 0 if self.outliers == 0 else self.outliers if self.outliers >= 1 else max(int(self.outliers * len(valid_files)), 1)
+
     for (file, tag) in to_fix:
-      errors.record(file, "FIXERROR", "Can't fix! Sorry.")
+      if outliers > permitted_outliers:
+        errors.record(file, "FIXERROR", "Too many outliers from %s: %s (max %s)" % (top_value, outliers, permitted_outliers))
+      else:
+        try:
+          frame = Frames.get(self.target)(encoding=3, text=top_value)
+          tag.add(frame)
+          tag.save() 
+          errors.record(file, "FIX", "Fixed: set field %s to \"%s\"" % (self.target, top_value))
+        except object, e:
+          errors.record(file, "FIXERROR", "Could not save %s", e)
+          
 
 
 
@@ -248,8 +280,8 @@ def runchecks(path):
 #    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
 #    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
 #    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
-#    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=1)),
-    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
+    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
+#    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
 #    FrameWhitelistCheck('TOWN', ['emusic']),
 #    FrameWhitelistCheck('TCON', ['Rock']),
 #    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
