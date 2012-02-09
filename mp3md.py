@@ -2,8 +2,8 @@
 #  - group reports by error-per-dir, or error-global
 #  - supply checks by file, command line, etc
 #  - collection-wide thresholds for incremental improvements (error if <50% have tag xxxx)
-#  - more detailed specifiers (e.g. COMM by language, or by type
-#  - apply fixes on a directory level
+#  - more detailed specifiers (e.g. COMM by language, or by type)
+#  - apply fixes on a directory levelgit 
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 from optparse import OptionParser
@@ -254,9 +254,24 @@ class TrackNumberContinuityCheck(Check):
     
     
 class Fix(object):
-  
   def try_fix(self, directory, valid_files, to_fix, errors):
     pass
+
+class ApplyValue(Fix):
+  def __init__(self, frametype, value):
+    self.frametype = frametype
+    self.value = value
+    
+  def try_fix(self, directory, valid_files, to_fix, errors):
+    for file, tag in to_fix:
+      try:
+        tag.delall(self.frametype)
+        frame = Frames.get(self.frametype)(encoding=3, text=self.value)
+        tag.add(frame)
+        tag.save() 
+        errors.record(file, "FIXED", "Frame %s set to '%s'" % (self.frametype, self.value))
+      except object, e:
+        errors.record(file, "FIXERROR", "Could not set frame %s to '%s': %s" % (self.frametype, self.value, e))
   
 class StripFrame(Fix):
   def __init__(self, frametypes):
@@ -331,14 +346,15 @@ def runchecks(tests):
 
 if __name__ == "__main__":
   tests = [
-    TagVersionCheck(fix=UpdateTag()),
-    FramePresentCheck(['APIC', 'TALB', 'TRCK']),
-    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
-    FrameConsistencyCheck(['TALB', 'TPE2']),
-    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
-    TrackNumberContinuityCheck(),
-    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
-    FrameWhitelistCheck('TCON', ['Rock', 'Pop', 'Alternative']),
-    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
+    #TagVersionCheck(fix=UpdateTag()),
+    #FramePresentCheck(['APIC', 'TALB', 'TRCK']),
+    #MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
+    #FrameConsistencyCheck(['TALB', 'TPE2']),
+    #FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
+    #TrackNumberContinuityCheck(),
+    #FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
+    #FrameWhitelistCheck('TCON', ['Rock', 'Pop', 'Alternative']),
+    #FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
+    FramePresentCheck(['TXXX'], fix=ApplyValue('TXXX', 'test')),
   ]
   runchecks(tests)
