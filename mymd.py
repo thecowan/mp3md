@@ -1,11 +1,12 @@
 from mp3md import *
 
 runchecks([
-  # percentage of nice-to-haves: TDRL
+  # percentage of nice-to-haves: e.g. TDRL
   # Strip id3v1?
+  # are there fields I don't want?
   TagVersionCheck(fix=UpdateTag()),
-  FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TRCK']),
-  # FramePresentCheck(['TDRC', 'RVA2',]),
+  FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TRCK', 'TDRC']),
+  # FramePresentCheck(['RVA2',]),
   FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=0.15)),
   MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
   TrackNumberContinuityCheck(),

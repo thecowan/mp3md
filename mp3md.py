@@ -2,7 +2,7 @@
 #  - group reports by error-per-dir, or error-global
 #  - supply checks by file, command line, etc
 #  - collection-wide thresholds for incremental improvements (error if <50% have tag xxxx)
-#  - more detailed specifiers (e.g. COMM by language, or by type)
+#  - more detailed specifiers (e.g. COMM by language, or by type) - check .delalls too
 #  - apply fixes on a directory level
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
@@ -12,52 +12,14 @@ import sys, os, fnmatch, re
 
 class Doctor(object):
   def __init__(self, tests):
-    self.test_runner = TestRunner(tests)
+    self.tests = tests
 
   def checkup(self, directory, recursive=False, fix=False):
     if recursive:
       for dirpath, _, _ in os.walk(directory):
-        self.test_runner.test_dir(dirpath, fix)
+        self.test_dir(dirpath, fix)
     else:
-      self.test_runner.test_dir(directory, fix)
-
-class Message(object):
-  def __init__(self, severity, text):
-    self.severity = severity
-    self.text = text
-
-  def __str__(self):
-    return "%s: %s" % (self.severity, self.text)
-    
-class Errors(object):
-  def __init__(self):
-    self.errors = dict()
-  
-  def record(self, path, severity, error):
-    self.errors.setdefault(path, []).append(Message(severity, error))
-
-  def has_errors(self):
-    return len(self.errors) > 0
-
-  def error_files(self):
-    return self.errors.keys()
-
-  def items(self):
-    return self.errors.items()
-
-  def merge(self, other):
-    for (path, errors) in other.items():
-      for error in errors:
-        self.errors.setdefault(path, []).append(error)
-
-  def demote_all(self, severity):
-    for (_, errors) in self.errors.items():
-      for error in errors:
-        error.severity = severity
-          
-class TestRunner(object):
-  def __init__(self, tests):
-    self.tests = tests
+      self.test_dir(directory, fix)
 
   def test_dir(self, directory, apply_fixes):
     errors = Errors()
@@ -94,6 +56,40 @@ class TestRunner(object):
         if errors:
           errors.record(path, "ERROR", "Unable to find ID3v2 tag")
     return valid_tags  
+
+class Message(object):
+  def __init__(self, severity, text):
+    self.severity = severity
+    self.text = text
+
+  def __str__(self):
+    return "%s: %s" % (self.severity, self.text)
+    
+class Errors(object):
+  def __init__(self):
+    self.errors = dict()
+  
+  def record(self, path, severity, error):
+    self.errors.setdefault(path, []).append(Message(severity, error))
+
+  def has_errors(self):
+    return len(self.errors) > 0
+
+  def error_files(self):
+    return self.errors.keys()
+
+  def items(self):
+    return self.errors.items()
+
+  def merge(self, other):
+    for (path, errors) in other.items():
+      for error in errors:
+        self.errors.setdefault(path, []).append(error)
+
+  def demote_all(self, severity):
+    for (_, errors) in self.errors.items():
+      for error in errors:
+        error.severity = severity
     
 class Check(object):
   def __init__(self, fix=None):
