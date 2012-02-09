@@ -2,7 +2,7 @@ from mp3md import *
 
 runchecks([
   # percentage of nice-to-haves: TDRL
-  # TCMP if 'Various' set
+  # Strip id3v1?
   TagVersionCheck(fix=UpdateTag()),
   FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TRCK']),
   # FramePresentCheck(['TDRC', 'RVA2',]),
@@ -18,4 +18,5 @@ runchecks([
   FrameBlacklistCheck('TPE2', ['Various', 'Assorted'], regex=False, fix=ApplyValue('TPE2', 'Various Artists')),
   #FrameWhitelistCheck('TPE3', ['xxx']), # conductor
   #FrameWhitelistCheck('TCOM', ['xxx']), # composer
+  DependentValueCheck('TCMP', '1', 'TPE2', 'Various Artists', fix=ApplyValue('TCMP', '1'))
 ])

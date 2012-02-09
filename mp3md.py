@@ -3,7 +3,7 @@
 #  - supply checks by file, command line, etc
 #  - collection-wide thresholds for incremental improvements (error if <50% have tag xxxx)
 #  - more detailed specifiers (e.g. COMM by language, or by type)
-#  - apply fixes on a directory levelgit 
+#  - apply fixes on a directory level
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 from optparse import OptionParser
@@ -251,6 +251,21 @@ class TrackNumberContinuityCheck(Check):
     if len(missing) > 0:
       errors.record(directory, severity, "Missing track numbers %s out of %s tracks" % (missing, maxtrack))
       
+class DependentValueCheck(FileCheck):
+  def __init__(self, required_frame, required_value, dependent_frame, dependent_value, fix=None):
+    FileCheck.__init__(self, fix)
+    self.required_frame = required_frame
+    self.required_value = required_value
+    self.dependent_frame = dependent_frame
+    self.dependent_value = dependent_value
+
+  def check_file(self, file, id3, severity, errors):
+    dependent = Check.get_value(id3, self.dependent_frame)
+    required = Check.get_value(id3, self.required_frame)
+    
+    if dependent == self.dependent_value and required != self.required_value:
+      errors.record(file, severity, "Frame %s = '%s' but %s not '%s' (was '%s')" % (self.dependent_frame,
+          self.dependent_value, self.required_frame, self.required_value, required))
     
     
 class Fix(object):
@@ -356,5 +371,6 @@ if __name__ == "__main__":
     #FrameWhitelistCheck('TCON', ['Rock', 'Pop', 'Alternative']),
     #FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
     FramePresentCheck(['TXXX'], fix=ApplyValue('TXXX', 'test')),
+    # DependentValueCheck('TCON', 'Rock', 'TPE1', 'Florence + The Machine', fix=ApplyValue('TCON', 'Rock'))
   ]
   runchecks(tests)
