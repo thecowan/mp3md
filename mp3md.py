@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # TODO:
 #  - group reports by error-per-dir, or error-global
 #  - supply checks by file, command line, etc
