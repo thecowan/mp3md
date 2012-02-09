@@ -1,9 +1,9 @@
 # TODO:
 #  - group reports by error-per-dir, or error-global
-#  - command-line flags (recursive)
 #  - supply checks by file, command line, etc
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
+from optparse import OptionParser
 
 import sys, os, fnmatch, re
 
@@ -11,12 +11,12 @@ class Doctor(object):
   def __init__(self, tests):
     self.test_runner = TestRunner(tests)
 
-  def checkup(self, directory, recursive=False):
+  def checkup(self, directory, recursive=False, fix=False):
     if recursive:
       for dirpath, _, _ in os.walk(directory):
-        self.test_runner.test_dir(dirpath)
+        self.test_runner.test_dir(dirpath, fix)
     else:
-      self.test_runner.test_dir(dirpath)
+      self.test_runner.test_dir(directory, fix)
 
 class Message(object):
   def __init__(self, severity, text):
@@ -56,13 +56,13 @@ class TestRunner(object):
   def __init__(self, tests):
     self.tests = tests
 
-  def test_dir(self, directory):
+  def test_dir(self, directory, apply_fixes):
     errors = Errors()
     valid_tags = self.files_with_valid_tags(directory, errors=errors)
     for test in self.tests:
       local_errors = Errors()
-      test.run_check(directory, valid_tags, "WARNING" if test.fix else "ERROR", local_errors)
-      if test.fix and local_errors.has_errors():
+      test.run_check(directory, valid_tags, "WARNING" if test.fix and apply_fixes else "ERROR", local_errors)
+      if apply_fixes and test.fix and local_errors.has_errors():
         tofix = [(path, id3) for (path, id3) in valid_tags if path in local_errors.error_files()]
         test.fix.try_fix(directory, valid_tags, tofix, local_errors)
         
@@ -226,6 +226,8 @@ class TagVersionCheck(FileCheck):
 class TrackNumberContinuityCheck(Check):
   def run_check(self, directory, files, severity, errors):
     # TODO: make aware of disc numbers. Provide option not to care about single-track purchases.
+    if len(files) == 0:
+      return
     track_values = set()
     maxtrack_values = set()
     for file, frame in files:
@@ -316,7 +318,15 @@ class UpdateTag(Fix):
 
 
 
-def runchecks(path):
+def runchecks(tests):
+  parser = OptionParser()
+  parser.add_option("-r", "--recursive", action="store_true", default=False, help="Recurse into directories")
+  parser.add_option("-f", "--apply-fixes", action="store_true", default=False, help="Apply any configured fixes")
+  (options, args) = parser.parse_args()
+  doctor = Doctor(tests)
+  doctor.checkup(args[0], recursive=options.recursive, fix=options.apply_fixes)
+
+if __name__ == "__main__":
   tests = [
     # 'real' tests
     # TDRL vs TDRC vs TYER
@@ -331,7 +341,7 @@ def runchecks(path):
     TagVersionCheck(fix=UpdateTag()),
 #    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
     TrackNumberContinuityCheck(),
-#    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
+    FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
 #    FrameWhitelistCheck('TOWN', ['emusic']),
 #    FrameWhitelistCheck('TCON', ['Rock']),
 #    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
@@ -343,8 +353,4 @@ def runchecks(path):
 #    FrameBlacklistCheck('TPE2', ['David Bowie']),
 #    FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
   ]
-  doctor = Doctor(tests)
-  doctor.checkup(path, recursive=True)
-
-if __name__ == "__main__":
-  runchecks(sys.argv[1])
+  runchecks(tests)
