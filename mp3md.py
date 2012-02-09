@@ -6,6 +6,8 @@
 #  - more detailed specifiers (e.g. COMM by language, or by type) - check .delalls too
 #  - apply fixes on a directory level
 #  - dependent tests - run only if the other passed. Overwrite operators?
+#  - documentation sweep
+#  - test cases (sigh)
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 from optparse import OptionParser
