@@ -1,18 +1,20 @@
 from mp3md import *
 
-Doctor([
-  # 'real' tests
-  # TDRL vs TDRC vs TYER
-  # RVA2 vs RVAD
-  # Blacklist 'Various' from TPE1?
-  # 'and' / '&' / 'feat' in artists
+runchecks([
+  # percentage of nice-to-haves: TDRL
+  # TCMP if 'Various' set
+  TagVersionCheck(fix=UpdateTag()),
   FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TRCK']),
-  # FramePresentCheck(['TDRL', 'RVA2',]),
+  # FramePresentCheck(['TDRC', 'RVA2',]),
+  FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=0.15)),
   MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
-  FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
+  TrackNumberContinuityCheck(),
+  FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL', 'TCMP']),
+  # FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
   FrameWhitelistCheck('TOWN', ['emusic', 'rip', 'hmm', 'nic', 'nate']),
   FrameWhitelistCheck('TCON', ['Rock', 'Children\'s', 'Lullaby', 'Audiobook', 'Alternative', 'Poetry', 'Soundtrack']),
-  #FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
+  FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
+  FrameBlacklistCheck('TPE1', [r'[Vv]arious', r' and ', r' with ', r' feat(uring|\.)? '], regex=True),
   #FrameWhitelistCheck('TPE3', ['xxx']), # conductor
   #FrameWhitelistCheck('TCOM', ['xxx']), # composer
-  ]).checkup(sys.argv[1], recursive=True)
+])

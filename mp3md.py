@@ -1,6 +1,9 @@
 # TODO:
 #  - group reports by error-per-dir, or error-global
 #  - supply checks by file, command line, etc
+#  - collection-wide thresholds for incremental improvements (error if <50% have tag xxxx)
+#  - more detailed specifiers (e.g. COMM by language, or by type
+#  - apply fixes on a directory level
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 from optparse import OptionParser
@@ -189,8 +192,8 @@ class FrameBlacklistCheck(FileCheck):
 
 
 class FrameConsistencyCheck(Check):
-  def __init__(self, frametypes, fix):
-    FileCheck.__init__(self, fix)
+  def __init__(self, frametypes, fix=None):
+    Check.__init__(self, fix)
     self.frametypes = frametypes
 
   def run_check(self, directory, files, severity, errors):
@@ -328,29 +331,14 @@ def runchecks(tests):
 
 if __name__ == "__main__":
   tests = [
-    # 'real' tests
-    # TDRL vs TDRC vs TYER
-    # RVA2 vs RVAD
-    # Blacklist 'Various' from TPE1?
-    # TCMP if 'Various' set
-    # 'and' / '&' / 'feat' in artists
-#    FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TDRL', 'RVA2', 'TRCK']),
-#    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
-#    FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL']),
-    FramePresentCheck(['TRCK']),
     TagVersionCheck(fix=UpdateTag()),
-#    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
+    FramePresentCheck(['APIC', 'TALB', 'TRCK']),
+    MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
+    FrameConsistencyCheck(['TALB', 'TPE2']),
+    FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=2)),
     TrackNumberContinuityCheck(),
     FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
-#    FrameWhitelistCheck('TOWN', ['emusic']),
-#    FrameWhitelistCheck('TCON', ['Rock']),
-#    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
-#    FrameWhitelistCheck('TPE3', ['xxx']), # conductor
-#    FrameWhitelistCheck('TCOM', ['xxx']), # composer
-    
-    # 'demo' tests
-#    FrameAbsentCheck(['XXXX','YYYY']),
-#    FrameBlacklistCheck('TPE2', ['David Bowie']),
-#    FrameWhitelistCheck('TPE2', ['^E', '^D'], regex=True),
+    FrameWhitelistCheck('TCON', ['Rock', 'Pop', 'Alternative']),
+    FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
   ]
   runchecks(tests)
