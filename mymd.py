@@ -1,16 +1,16 @@
 from mp3md import *
 
 runchecks([
+  # document recommended order - version checks to make sure everything's OK, check presence + apply sets before bulk dir operations
   # percentage of nice-to-haves: e.g. TDRL
-  # Strip id3v1?
-  # are there fields I don't want?
+  # Strip id3v1, or check it's consistent?
+  # are there fields which should be stripped?
   TagVersionCheck(fix=UpdateTag()),
   FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TRCK', 'TDRC']),
   # FramePresentCheck(['RVA2',]),
   FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=0.15)),
   MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
   TrackNumberContinuityCheck(),
-  FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL', 'TCMP']),
   # FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
   FrameWhitelistCheck('TOWN', ['emusic', 'rip', 'hmm', 'nic', 'nate']),
   FrameWhitelistCheck('TCON', ['Rock', 'Children\'s', 'Lullaby', 'Audiobook', 'Alternative', 'Poetry', 'Soundtrack']),
@@ -19,5 +19,6 @@ runchecks([
   FrameBlacklistCheck('TPE2', ['Various', 'Assorted'], regex=False, fix=ApplyValue('TPE2', 'Various Artists')),
   #FrameWhitelistCheck('TPE3', ['xxx']), # conductor
   #FrameWhitelistCheck('TCOM', ['xxx']), # composer
-  DependentValueCheck('TCMP', '1', 'TPE2', 'Various Artists', fix=ApplyValue('TCMP', '1'))
+  DependentValueCheck('TCMP', '1', 'TPE2', 'Various Artists', fix=ApplyValue('TCMP', '1')),
+  FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL', 'TCMP']),
 ])

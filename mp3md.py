@@ -4,6 +4,7 @@
 #  - collection-wide thresholds for incremental improvements (error if <50% have tag xxxx)
 #  - more detailed specifiers (e.g. COMM by language, or by type) - check .delalls too
 #  - apply fixes on a directory level
+#  - dependent tests - run only if the other passed. Overwrite operators?
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 from optparse import OptionParser
@@ -13,6 +14,7 @@ import sys, os, fnmatch, re
 class Doctor(object):
   def __init__(self, tests):
     self.tests = tests
+  
 
   def checkup(self, directory, recursive=False, fix=False):
     if recursive:
