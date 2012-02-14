@@ -39,10 +39,10 @@ runchecks([
   # Check TPE2 consistent per folder? What about TCON?
   # "conducted by" banned in TPE1 (cf. BBC Philharmonic)
   # "strict" version - check full release date (yyyy-mm-dd)
+  # document which ones are 'subtag' (e.g. 'COMM:foo' safe)
   #FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
   #FrameWhitelistCheck('TPE3', ['xxx']), # conductor
   #FrameWhitelistCheck('TCOM', ['xxx']), # composer
-  #Strip PRIV= DRM frames.
 
   TagVersionCheck(fix=UpdateTag()),
   FramePresentCheck(['TIT2', 'TPE1', 'APIC', 'TALB', 'TOWN', 'TRCK', 'TDRC']), # RVA2, TCON
@@ -61,4 +61,5 @@ runchecks([
   FrameBlacklistCheck('TPE2', ['Various', 'Assorted'], regex=False, fix=ApplyValue('TPE2', 'Various Artists')),
   DependentValueCheck('TCMP', '1', 'TPE2', 'Various Artists', fix=ApplyValue('TCMP', '1')),
   FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL', 'TCMP']), # TCON?
+  FrameAbsentCheck(['PRIV:contentgroup@emusic.com'], fix=StripFrame(['PRIV:contentgroup@emusic.com'])),
 ])
