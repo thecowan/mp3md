@@ -1,6 +1,33 @@
 #!/usr/bin/python
 from mp3md import *
 
+class TrailingArtistCheck(FileCheck, Fix):
+  def __init__(self):
+    FileCheck.__init__(self, self)
+
+  def check_file(self, file, id3, severity, errors):
+      artist = Check.get_value(id3, 'TPE1') 
+      title = Check.get_value(id3, 'TIT2')
+      search_string = " - " + artist
+      if title.endswith(search_string):
+        errors.record(file, severity, "Title '%s' appears to include artist '%s'" % (title, artist))
+
+  def try_fix(self, directory, valid_files, to_fix, errors):
+    for file, tag in to_fix:
+      try:
+        artist = Check.get_value(tag, 'TPE1') 
+        title = Check.get_value(tag, 'TIT2')
+        search_string = " - " + artist
+        newtitle = title.replace(search_string, "")
+        tag.delall('TIT2')
+        frame = Frames.get('TIT2')(encoding=3, text=newtitle)
+        tag.add(frame)
+        tag.save() 
+        errors.record(file, "FIXED", "Title set to '%s'" % (newtitle))
+      except object, e:
+        errors.record(file, "FIXERROR", "Could not set title to '%s': %s" % (newtitle, e))
+
+
 runchecks([
   # document recommended order - version checks to make sure everything's OK, check presence + apply sets before bulk dir operations
   # percentage of nice-to-haves: e.g. TDRL
@@ -18,7 +45,8 @@ runchecks([
   #Strip PRIV= DRM frames.
 
   TagVersionCheck(fix=UpdateTag()),
-  FramePresentCheck(['APIC', 'TALB', 'TOWN', 'TRCK', 'TDRC']), # RVA2, TCON
+  FramePresentCheck(['TIT2', 'TPE1', 'APIC', 'TALB', 'TOWN', 'TRCK', 'TDRC']), # RVA2, TCON
+  TrailingArtistCheck(),
   FramePresentCheck(['TPE2'], fix=ApplyCommonValue(source='TPE1', target='TPE2', outliers=1)),
   MutualPresenceCheck(['TOAL', 'TOPE', 'TDOR']),
   #TrackNumberContinuityCheck(),
