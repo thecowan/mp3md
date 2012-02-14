@@ -3,11 +3,19 @@
 #  - group reports by error-per-dir, or error-global
 #  - supply checks by file, command line, etc
 #  - collection-wide thresholds for incremental improvements (error if <50% have tag xxxx)
-#  - more detailed specifiers (e.g. COMM by language, or by type) - check .delalls too
 #  - apply fixes on a directory level
 #  - dependent tests - run only if the other passed. Overwrite operators?
 #  - documentation sweep
 #  - test cases (sigh)
+#  - document recommended order - version checks to make sure everything's OK, check presence + apply sets before bulk dir 
+#  - percentage of nice-to-haves: e.g. TDRL
+#  - Strip id3v1, or check it's consistent?
+#  - Option to find incorrect directory structure (Various Artists TPE2 not in Various Artists, non-two-levels-deep structures)
+#  - Sort alphabetically when scanning
+#  - Coloured output for errors, or dump to stderr
+#  - document which ones are 'subtag' (e.g. 'COMM:foo' safe)
+#  - Generalised reporting mode? Summary of genres etc. by track count.
+
 from mutagen.id3 import ID3
 from mutagen.id3 import Frames
 from optparse import OptionParser

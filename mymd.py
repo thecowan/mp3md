@@ -29,17 +29,10 @@ class TrailingArtistCheck(FileCheck, Fix):
 
 
 runchecks([
-  # document recommended order - version checks to make sure everything's OK, check presence + apply sets before bulk dir operations
-  # percentage of nice-to-haves: e.g. TDRL
-  # Strip id3v1, or check it's consistent?
-  # are there fields which should be stripped?
-  # Find incorrect directory structure (Various Artists TPE2 not in Various Artists, non-two-levels-deep structures)
-  # Sort alphabetically when scanning
-  # Coloured output for errors, or dump to stderr
-  # Check TPE2 consistent per folder? What about TCON?
+  # check which fields should be stripped (e.g. J River tags)
+  # Should I check TCON is consistent per folder?
   # "conducted by" banned in TPE1 (cf. BBC Philharmonic)
   # "strict" version - check full release date (yyyy-mm-dd)
-  # document which ones are 'subtag' (e.g. 'COMM:foo' safe)
   #FrameAbsentCheck(['COMM'], fix=StripFrame(['COMM'])),
   #FrameWhitelistCheck('TPE3', ['xxx']), # conductor
   #FrameWhitelistCheck('TCOM', ['xxx']), # composer
