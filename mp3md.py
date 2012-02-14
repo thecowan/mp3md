@@ -114,7 +114,11 @@ class Check(object):
     frame = Check.get_frame(id3, frametype)
     if frame:
       # TODO: deal with multi-valued fields
-      return str(frame.text[0])
+      try:
+        return unicode(frame.text[0])
+      except UnicodeEncodeError, e:
+        print "ERROR reading id3: %s", id3
+        raise e
     return None
   get_value = staticmethod(get_value)
 
