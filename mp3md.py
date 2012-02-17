@@ -369,6 +369,8 @@ def runchecks(tests):
   parser.add_option("-r", "--recursive", action="store_true", default=False, help="Recurse into directories")
   parser.add_option("-f", "--apply-fixes", action="store_true", default=False, help="Apply any configured fixes")
   (options, args) = parser.parse_args()
+  if not args:
+    raise SystemExit(parser.print_help() or 1)
   doctor = Doctor(tests)
   doctor.checkup(args[0], recursive=options.recursive, fix=options.apply_fixes)
 
