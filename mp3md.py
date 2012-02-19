@@ -118,7 +118,7 @@ class Check(object):
       return None
   get_frame = staticmethod(get_frame)
   
-  def get_value(id3, frametype): 
+  def get_value(id3, frametype, default=None): 
     frame = Check.get_frame(id3, frametype)
     if frame:
       # TODO: deal with multi-valued fields
@@ -127,7 +127,7 @@ class Check(object):
       except UnicodeEncodeError, e:
         print "ERROR reading id3: %s", id3
         raise e
-    return None
+    return default
   get_value = staticmethod(get_value)
 
 class FileCheck(Check):
