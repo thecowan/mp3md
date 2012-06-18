@@ -94,5 +94,6 @@ runchecks([
   DependentValueCheck('TCMP', '1', 'TPE2', 'Various Artists', fix=ApplyValue('TCMP', '1')),
   FrameConsistencyCheck(['TALB', 'TPE2', 'TOWN', 'TDRL', 'TCMP']), # TCON?
   FrameAbsentCheck(['PRIV:contentgroup@emusic.com'], fix=StripFrame(['PRIV:contentgroup@emusic.com'])),
+  FrameAbsentCheck(['PRIV:www.amazon.com'], fix=StripFrame(['PRIV:www.amazon.com'])),
   FrameBlacklistCheck('TIT2', [metadata_regex], regex=True, fix=MigrateRegex(regex=metadata_regex, from_frame='TIT2', to_frame='TIT3', overwrite=False, match_group=1)),
 ])
