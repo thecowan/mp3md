@@ -65,7 +65,7 @@ class MigrateRegex(Fix):
         errors.record(file, "FIXERROR", "Could not move regex %s from frame %s to frame %s: %s" % (self.refex, self.from_frame, self.to_frame, e))
 
 
-metadata_regex = r'(?i) ?[(\[][^)\]]*((single|album) version|explicit|remaster|clean)[)\]]$'
+metadata_regex = r'(?i) ?[(\[]([^)\]]*((single|album) version|explicit|remaster|clean))[)\]]$'
 
 runchecks([
   # check which fields should be stripped (e.g. J River tags)
