@@ -49,7 +49,7 @@ runchecks([
                                'Bluegrass', 'Blues', 'World', 'Vocal', 'Swing', 'Punk', 'Hip-Hop', 'Musical', 'Latin', 'Jazz',
                                'Lounge', 'R&B', 'Reggae', 'Mashup', 'Techno', 'Trip Hop', 'A Capella', 'Instrumental']),
   #FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
-  FrameBlacklistCheck('TALB', [r'[dD]is[kc] [0-9]+'], regex=True),
+  FrameBlacklistCheck('TALB', [r'(?i)dis[kc] [0-9]+'], regex=True),
   #FrameBlacklistCheck('TPE1', [r'[Vv]arious', r' and ', r' with ', r' feat(uring|\.)? '], regex=True),
   FrameBlacklistCheck('TPE2', ['Various', 'Assorted'], regex=False, fix=ApplyValue('TPE2', 'Various Artists')),
   DependentValueCheck('TCMP', '1', 'TPE2', 'Various Artists', fix=ApplyValue('TCMP', '1')),

@@ -173,7 +173,7 @@ class FrameWhitelistCheck(FileCheck):
     if not frame:
       return
     if self.regex:
-      valid = [[string for regex in self.whitelist if re.match(regex, string)] for string in frame.text]
+      valid = [[string for regex in self.whitelist if re.search(regex, string)] for string in frame.text]
       if valid:
         valid = valid[0]
       invalid = [string for string in frame.text if string not in valid]
@@ -195,7 +195,7 @@ class FrameBlacklistCheck(FileCheck):
     if not frame:
       return
     if (self.regex):
-      invalid = [[string for regex in self.blacklist if re.match(regex, string)] for string in frame.text]
+      invalid = [[string for regex in self.blacklist if re.search(regex, string)] for string in frame.text]
       if invalid:
         invalid = invalid[0]
     else:
