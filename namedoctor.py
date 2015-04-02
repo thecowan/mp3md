@@ -23,6 +23,7 @@ class Renamer(object):
       values["TRCK"] = Renamer.first_part(id3, "TRCK")
       values["TPOS"] = Renamer.first_part(id3, "TPOS")
       values["TIT2"] = Check.get_value(id3, "TIT2", "Unknown")
+      values["TPE1"] = Check.get_value(id3, "TPE1", "Unknown")
       name = pattern % values
       name = re.sub('[/:]+', '', name)
       name = os.path.join(directory, name)
@@ -36,16 +37,14 @@ class Renamer(object):
   first_part = staticmethod(first_part)
 
   def files_with_valid_tags(self, directory, errors=None):
-    valid_tags = []
     files = fnmatch.filter(os.listdir(directory), '*.mp3')
     for file in files:
       path = os.path.join(directory, file)
       try:
         id3 = ID3(path)
-        valid_tags.append((path, id3))
+        yield (path, id3)
       except:
           print "Unable to find ID3v2 tag for %s" % (path,)
-    return valid_tags
 
 
 def dorename():
