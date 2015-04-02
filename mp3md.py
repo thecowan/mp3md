@@ -29,7 +29,7 @@ class Doctor(object):
 
   def checkup(self, directory, recursive=False, fix=False):
     if recursive:
-      for dirpath, _, _ in os.walk(directory):
+      for dirpath, _, _ in sorted(os.walk(directory)):
         self.test_dir(dirpath, fix)
     else:
       self.test_dir(directory, fix)
