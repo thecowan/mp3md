@@ -8,6 +8,10 @@ class TrailingArtistCheck(FileCheck, Fix):
   def check_file(self, file, id3, severity, errors):
       artist = Check.get_value(id3, 'TPE1') 
       title = Check.get_value(id3, 'TIT2')
+      if not artist:
+        return
+      if not title:
+        return
       search_string = " - " + artist
       if title.endswith(search_string):
         errors.record(file, severity, "Title '%s' appears to include artist '%s'" % (title, artist))
