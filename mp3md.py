@@ -56,6 +56,7 @@ class Doctor(object):
         print "%s:" % (file)
         for message in errormessages:
           print " %s" % (message)
+	sys.stdout.flush()
 
   def files_with_valid_tags(self, directory, errors=None):
     valid_tags = []
