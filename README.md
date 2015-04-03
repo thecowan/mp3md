@@ -1,4 +1,4 @@
-# MP3MD
+# ![mp3md](resources/mp3md-sm.png)
 
 ## Introduction 
 
