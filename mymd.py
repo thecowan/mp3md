@@ -118,4 +118,5 @@ runchecks([
   FrameAbsentCheck(['PRIV:www.amazon.com'], fix=StripFrame(['PRIV:www.amazon.com'])),
   FrameBlacklistCheck('TIT2', [metadata_regex], regex=True, fix=MigrateRegex(regex=metadata_regex, from_frame='TIT2', to_frame='TIT3', overwrite=False, match_group=1)),
   # FrameAbsentCheck(['PRIV'], fix=StripFrame(['PRIV'])),
+  Compressed24Tag(fix=UpdateTag()),
 ])

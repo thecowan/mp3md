@@ -17,6 +17,7 @@
 #  - Generalised reporting mode? Summary of genres etc. by track count.
 
 from mutagen.id3 import ID3
+from mutagen.id3 import Frame
 from mutagen.id3 import Frames
 from optparse import OptionParser
 
@@ -280,6 +281,21 @@ class DependentValueCheck(FileCheck):
     if dependent == self.dependent_value and required != self.required_value:
       errors.record(file, severity, "Frame %s = '%s' but %s not '%s' (was '%s')" % (self.dependent_frame,
           self.dependent_value, self.required_frame, self.required_value, required))
+
+class Compressed24Tag(FileCheck):
+  def __init__(self, fix=None):
+    FileCheck.__init__(self, fix)
+
+  def check_file(self, file, id3, severity, errors):
+      if (2,4,0) > id3.version:
+        return
+      compressed_frames = []
+      for frame_type in id3:
+        for frame in id3.getall(frame_type):
+          if frame._flags & Frame.FLAG24_COMPRESS:
+            compressed_frames.append(frame_type)
+      if compressed_frames:
+         errors.record(file, severity, "Found compressed v2.4 frames: %s" % (compressed_frames,))
     
     
 class Fix(object):
