@@ -1,5 +1,0 @@
-MP3 'sanity checker': runs a series of pre-defined (but customisable) checks against an MP3 collection.
-
-For example, can check that every file has an APIC (album art) field, or that fields
-such as 'TALB' (album name) and 'TCON' (genre) are consistent across all files in
-a directory.
