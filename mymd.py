@@ -91,7 +91,7 @@ runchecks([
                                'free', 'chris', 'google', 'daytrotter', 'humblebundle', 'soundsupply', 'bandcamp']),
   FrameWhitelistCheck('TCON', ['Rock', 'Children\'s', 'Lullaby', 'Audiobook', 'Alternative', 'Poetry', 'Soundtrack', 'Indie',
                                'Christmas', 'Pop', 'Folk', 'Electronic', 'Folk', 'Comedy', 'Dance', 'Country', 'Classical',
-                               'Bluegrass', 'Blues', 'World', 'Vocal', 'Swing', 'Punk', 'Hip-Hop', 'Musical', 'Latin', 'Jazz',
+                               'Bluegrass', 'Blues', 'World', 'Vocal', 'Swing', 'Punk', 'Hip-Hop', 'Musical', 'Latin', 'Jazz',]),
   #FrameBlacklistCheck('TIT2', [r'[\(\[].*with', r'[\(\[].*live', r'[\(\[].*remix', r'[\(\[].*cover'], regex=True),
   FrameBlacklistCheck('TALB', [r'(?i)dis[kc] [0-9]+'], regex=True),
   FrameBlacklistCheck('TALB', [r'\[\+digital booklet\]'], regex=True),
