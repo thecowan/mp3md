@@ -102,7 +102,9 @@ The first three lines, and the last, are boilerplate. What we care about is line
 
 There are 2 types of checks in `mp3md.py`: those which are self-fixing (these extend both `Check` and `Fix`), and those which require an instance of the `Fix` class to be supplied in their constructor. `TagVersionCheck` is an example of the former. If we just had the line
 
-```TagVersionCheck()```
+```
+TagVersionCheck()
+```
 
 then there would be no fix, so the check would be of "Error" severity if found during a fix run (one with the `-f` flag set). By adding `fix=UpdateTag()`, we're supplying an instance of a `Fix` class which will be used to fix the problem.
 
